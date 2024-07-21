@@ -45,6 +45,13 @@ def update_molecule(identifier: int, updated: Molecule):
     else:
         raise HTTPException(status_code=404, detail=f"The molecule with identifier {identifier} is not found.")
 
+@app.delete("/molecules/{identifier}")
+def delete_molecule(identifier: int):
+    if identifier in molecules:        
+        return molecules.pop(identifier)
+    else:
+        raise HTTPException(status_code=404, detail=f"The molecule with identifier {identifier} is not found.")
+
 # Substructure search for all added molecules
 # [Optional] Upload json file with molecules
 
