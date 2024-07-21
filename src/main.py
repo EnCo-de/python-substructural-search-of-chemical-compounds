@@ -35,6 +35,16 @@ def retrieve_molecule_by_id(identifier: int):
         return molecules[identifier]
     raise HTTPException(status_code=404, detail=f"The molecule with identifier {identifier} is not found.")
 
+@app.put("/molecules/{identifier}")
+def update_molecule(identifier: int, updated: Molecule):
+    if identifier != updated.identifier:
+        raise HTTPException(status_code=400, detail=f"The molecule identifiers {identifier} != {updated.identifier} do not match.")
+    elif identifier in molecules:
+        molecules[identifier] = updated
+        return molecules[identifier]
+    else:
+        raise HTTPException(status_code=404, detail=f"The molecule with identifier {identifier} is not found.")
+
 # Substructure search for all added molecules
 # [Optional] Upload json file with molecules
 
