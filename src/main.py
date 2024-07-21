@@ -1,5 +1,5 @@
-# from typing import Union
-from fastapi import FastAPI
+# from typing import Union, Optional
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 
@@ -7,32 +7,38 @@ class Molecule(BaseModel):
     identifier: int
     smiles: str
 
-    def to_json(self):
-        return {'identifier': self.identifier, 'smiles': self.smiles}
-
-
 
 def substructure_search(mols, mol):
     pass
 
 app = FastAPI()
 
-molecules = []
+molecules = {}
 
 @app.get("/")
 @app.get("/molecules/")
 def retrieve_all_molecules():
-    if molecules:
-        n = max(molecules, key=lambda x: x.identifier)
-        n = n.identifier
+    return list(molecules.values())
+
+@app.post("/molecules/", status_code=201)
+def add_molecule_smiles(new: Molecule):
+    if new.identifier in molecules:
+        raise HTTPException(status_code=400, detail=f"The molecule with identifier {new.identifier} is found, duplicate key raised an IntegrityError")
     else:
-        n = 0
-    molecules.append(Molecule(identifier=n+1, smiles='hooo'))
-    return [item.to_json() for item in molecules]
+        molecules[new.identifier] = new
+        return molecules[new.identifier]
+
 
 @app.get("/molecules/{identifier}")
 def retrieve_molecule_by_id(identifier: int):
-    for molecule in molecules:
-        if molecule.identifier == identifier:
-            return {"molecule": molecule.to_json()}
-    return {"404": "Not found"}
+    if identifier in molecules:
+        return molecules[identifier]
+    raise HTTPException(status_code=404, detail=f"The molecule with identifier {identifier} is not found.")
+
+# Substructure search for all added molecules
+# [Optional] Upload json file with molecules
+
+import uvicorn
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
