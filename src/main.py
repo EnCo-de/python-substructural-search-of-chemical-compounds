@@ -5,12 +5,17 @@ from pydantic import BaseModel
 
 def substructure_search(mols: List[str], mol: str) -> List[str]:
     """ 
-    Function returns a list of all molecules as SMILES strings from mols 
+    Find and return a list of all molecules as SMILES strings from mols 
     that contain substructure mol as SMILES string.
     """
-    mol = MolFromSmiles(mol)
-    return [smiles for smiles in mols 
+    try:
+        mol = MolFromSmiles(mol)
+        if mol is None:
+            return []
+        return [smiles for smiles in mols 
             if MolFromSmiles(smiles).HasSubstructMatch(mol)]
+    except:
+        return []
 
 
 class Molecule(BaseModel):
@@ -58,13 +63,31 @@ def delete_molecule(identifier: int):
     else:
         raise HTTPException(status_code=404, detail=f"The molecule with identifier {identifier} is not found.")
 
-# Substructure search for all added molecules
-# [Optional] Upload json file with molecules
+@app.get("/search/{mol}")
+def search_molecules(mol: str = None):
+    """ Substructure search for all added molecules """
+    if len(molecules) > 0 and mol is not None:
+        mols = [molecule.smiles for molecule in molecules.values()]
+        return substructure_search(mols, mol)
+    else:
+        raise HTTPException(status_code=400, detail=f"The molecules aren't provided for substructure search.")
+
+@app.post("/molecules/", status_code=201)
+def upload_molecules(n: int = float('inf'), start: int = 1):
+    """ [Optional] Upload n molecules and add smiles to container starting from identifier start """
+    upload = ["CCO", "c1ccccc1", "Cc1ccccc1", "C(=O)O", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"]
+    i = start
+    while i - start < len(upload) and i - start <= n:
+        molecules[i] = Molecule(identifier=i, smiles=upload[i - start])
+        i += 1
+    return list(molecules.values())
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    example = substructure_search(["CCO", "c1ccccc1", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"], "c1ccccc1")
+    example = substructure_search(
+        ["CCO", "c1ccccc1", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"], 
+        "c1ccccc1")
     assert example == ["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"]
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
