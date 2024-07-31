@@ -1,6 +1,7 @@
+import io
 from typing import List # , Union, Optional
 from rdkit.Chem import MolFromSmiles # , Draw
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, UploadFile
 from pydantic import BaseModel
 
 def substructure_search(mols: List[str], mol: str) -> List[str]:
@@ -8,15 +9,11 @@ def substructure_search(mols: List[str], mol: str) -> List[str]:
     Find and return a list of all molecules as SMILES strings from *mols* 
     that contain substructure *mol* as SMILES string.
     """
-    try:
-        mol = MolFromSmiles(mol)
-        if mol is None:
-            return []
-        return [smiles for smiles in mols 
-            if MolFromSmiles(smiles).HasSubstructMatch(mol)]
-    except:
+    mol = MolFromSmiles(mol)
+    if mol is None:
         return []
-
+    return [smiles for smiles in mols 
+        if (compound := MolFromSmiles(smiles)) and compound.HasSubstructMatch(mol)]
 
 class Molecule(BaseModel):
     identifier: int
@@ -83,13 +80,23 @@ def search_molecules(mol: str = None):
     else:
         raise HTTPException(status_code=400, detail=f"The molecules aren't provided for substructure search.")
 
-@app.post("/molecules/", status_code=status.HTTP_201_CREATED, tags=['Substructure search'])
-def upload_molecules(n: int = float('inf'), start: int = 1):
-    """ [Optional] Upload n molecules and add smiles to container starting from identifier start """
-    upload = ["CCO", "c1ccccc1", "Cc1ccccc1", "C(=O)O", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"]
+@app.post("/molecules/", status_code=status.HTTP_201_CREATED, summary="[Optional] Upload file with molecules", tags=['Substructure search'])
+async def upload_molecules(file: UploadFile | None = None, n: int = float('inf'), start: int = 1):
+    """ [Optional] Upload n molecules and add smiles to container starting from identifier start 
+    Upload a text file with molecules as SMILES strings on separate lines. """
+    if file is None:
+        upload = ["CCO", "c1ccccc1", "Cc1ccccc1", "C(=O)O", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"]
+    elif file.filename.endswith(('.txt')) and file.content_type == 'text/plain':
+        upload = await file.read()
+        upload = upload.decode('utf-8').replace('\r','').split('\n')
+    else:
+        raise HTTPException(status_code=400, detail=f"Upload a text file with molecules as SMILES strings.")
     i = start
-    while i - start < len(upload) and i - start <= n:
-        molecules[i] = Molecule(identifier=i, smiles=upload[i - start])
+    end = min(len(upload), max(0, n)) + start
+    while i < end:
+        smiles=upload[i - start].strip()
+        if smiles and MolFromSmiles(smiles) is not None:
+            molecules[i] = Molecule(identifier=i, smiles=smiles)
         i += 1
     return list(molecules.values())
 
