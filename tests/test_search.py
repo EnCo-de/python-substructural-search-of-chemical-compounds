@@ -14,7 +14,7 @@ def test_substructure_search():
         "c1ccccc1")
     assert example == ["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"]
     assert substructure_search(["c1ccccc1"], "not-SMILES") == []
-    assert substructure_search(["not-SMILES","CC(=O)Oc1ccccc1C(=O)O","not-SMILES","not-SMILES"], "c1ccccc1") == []
+    assert substructure_search(["not-SMILES","CC(=O)Oc1ccccc1C(=O)O","not-SMILES","not-SMILES"], "c1ccccc1") == ["CC(=O)Oc1ccccc1C(=O)O"]
 
 @mark.parametrize("mols, mol, expected", [
     (["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"],'H-H',[]),
