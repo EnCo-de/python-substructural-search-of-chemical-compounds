@@ -1,7 +1,8 @@
 FROM continuumio/miniconda3
-RUN conda install conda-forge::rdkit
+RUN conda install conda-forge::rdkit && \
+       conda clean -afy
 COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt && pip freeze
 WORKDIR /src
 EXPOSE 8000
 COPY . /src
