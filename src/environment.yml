@@ -1,0 +1,9 @@
+name: slim
+channels:
+  - defaults
+dependencies:
+  - python=3.12.5
+  - pip=24.2
+  - pip:
+    - uvicorn==0.30.3
+    - fastapi-slim==0.111.1
