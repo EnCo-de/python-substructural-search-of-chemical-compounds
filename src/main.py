@@ -3,6 +3,7 @@ from typing import List # , Union, Optional
 from rdkit.Chem import MolFromSmiles # , Draw
 from fastapi import FastAPI, status, HTTPException, UploadFile
 from pydantic import BaseModel
+from os import getenv
 
 def substructure_search(mols: List[str], mol: str) -> List[str]:
     """ 
@@ -24,7 +25,14 @@ app = FastAPI()
 
 molecules = {}
 
-@app.get("/", tags=['Checking stored molecule SMILES'])
+@app.get("/", summary='Check nginx load balancing', tags=['Load balancer'])
+def get_server():
+    """ 
+    You should be able to access the application on your browser.
+    Confirm that the load balancer distributes the request to both web containers.
+    """
+    return {"server_id": getenv("SERVER_ID", "1")}
+
 @app.get("/smiles/", tags=['Checking stored molecule SMILES'])
 def retrieve_all_molecules():
     return list(molecules.values())
