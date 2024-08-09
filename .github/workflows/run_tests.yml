@@ -22,4 +22,6 @@ jobs:
       - name: Test with pytest
         run: |
           pytest tests -v
-
+      - name: Linting with flake8
+        run: |
+          flake8 src/main.py
