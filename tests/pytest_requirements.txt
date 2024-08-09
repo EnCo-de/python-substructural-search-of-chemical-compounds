@@ -2,5 +2,5 @@
 certifi==2024.7.4 
 httpcore==1.0.5 
 httpx==0.27.0
-starlette==0.37.2
+starlette==0.37.2# lintingflake8
 
