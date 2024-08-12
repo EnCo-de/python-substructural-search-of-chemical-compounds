@@ -1,45 +1,63 @@
-# from typing import List # , Union, Optional
-# from rdkit.Chem import MolFromSmiles # , Draw
-# from fastapi import FastAPI, status, HTTPException
-# from pydantic import BaseModel
-# from os import getenv
-from pytest import mark, fixture
-from src.main import (substructure_search, app, get_server, retrieve_all_molecules, 
-                   add_molecule_smiles, retrieve_molecule_by_id, update_molecule, 
-                   delete_molecule, search_molecules, upload_molecules)
+from pytest import mark, fixture, raises
+from src.main import substructure_search
 
-def test_substructure_search():
-    example = substructure_search(
-        ["CCO", "c1ccccc1", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"], 
-        "c1ccccc1")
+
+@fixture
+def molecules_storage():
+    return ["CCO", "c1ccccc1", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"]
+
+
+def test_substructure_search(molecules_storage):
+    example = substructure_search(molecules_storage, "c1ccccc1")
     assert example == ["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"]
-    assert substructure_search(["c1ccccc1"], "not-SMILES") == []
-    assert substructure_search(["not-SMILES","CC(=O)Oc1ccccc1C(=O)O","not-SMILES","not-SMILES"], "c1ccccc1") == ["CC(=O)Oc1ccccc1C(=O)O"]
+    assert substructure_search(molecules_storage, "not-SMILES") == []
+    assert substructure_search(
+        ["not-SMILES","CC(=O)Oc1ccccc1C(=O)O","not-SMILES","not-SMILES"],
+        "c1ccccc1") == ["CC(=O)Oc1ccccc1C(=O)O"]
+    expected = ['CCO', 'CC(=O)O']
+    assert substructure_search(tuple(expected), "O") == expected
+
 
 @mark.parametrize("mols, mol, expected", [
     (["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"],'H-H',[]),
     (["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"],'C(=O)O',["CC(=O)Oc1ccccc1C(=O)O"]),
     (["CCO", "c1ccccc1", "CC(=O)O"], '',  []),
     ([], "CCO",  []),
-    # ("CCOc1ccccc1", 'O',  ["CCO", "CC(=O)O"]),
     (["CCO", "c1ccccc1", "CC(=O)O", "C"], 'O',  ["CCO", "CC(=O)O"]),
     ])
 def test_parametrize_search(mols, mol, expected):
     assert substructure_search(mols, mol) == expected
 
-@fixture
-def molecules_storage():
-    return {1: "CC(=O)Oc1ccccc1C(=O)O"}
 
-@mark.xfail(raises=AssertionError)
+@mark.xfail(reason="SMILES Parse Error")
 def test_substructure_str():
-    assert substructure_search("CC(=O)Oc1ccccc1C(=O)O", "C") == ["C"]
+    assert substructure_search(["CC(=O)Oc1ccccc1C(=O)O"], "C2(OH)4") == ["C"]
 
-@mark.xfail(raises=AssertionError, reason="known issue SMILES Parse Error, to be fixed")
-def test_function():
+
+@mark.skip(reason="no way of currently testing this")
+def test_skip():
+    print("Skip this test function")
+
+
+text = "TypeError: No converter to C++ value from NoneType object"
+@mark.xfail(raises=TypeError, reason=text)
+def test_substructure_none(molecules_storage):
+    assert substructure_search(molecules_storage, None) == ["C"]
+
+
+def test_function_raises_exceptions(molecules_storage):
     mols = 'CCOc1ccccc1'
     mol = 'O'
     expected = ['CCO', 'CC(=O)O']
-    assert substructure_search(mols, mol) == expected
-    assert substructure_search("CC(=O)Oc1ccccc1C(=O)O", "C") == ["C"]
-    
+    # reason="Wrong argument data type"
+    with raises(TypeError, match='input value'):
+        substructure_search(mols, mol) == expected
+    with raises(TypeError, match='input value'):
+        molecules_storage.extend([1, 2, 3])
+        substructure_search(molecules_storage, "C")
+    with raises(TypeError, match='input value'):
+        substructure_search("CC(=O)Oc1ccccc1C(=O)O", "C")
+    with raises(TypeError, match=r'missing \d required positional argument'):
+        substructure_search()
+    with raises(TypeError, match=r'missing \d required positional argument'):
+        substructure_search(molecules_storage)    
