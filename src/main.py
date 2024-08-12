@@ -121,7 +121,7 @@ def search_molecules(mol: str = None):
     Substructure search for all added molecules
 
     - **mol**: a unique SMILES string for this substructure molecule,
-    - **return** a list of all molecules that contain 
+    - **return** a list of all molecules that contain
     substructure `mol` as SMILES strings
     """
     if len(molecules) > 0 and mol is not None:
@@ -134,10 +134,10 @@ def search_molecules(mol: str = None):
             )
 
 
-@app.post("/molecules/", status_code=status.HTTP_201_CREATED, 
-          summary="[Optional] Upload file with molecules", 
+@app.post("/molecules/", status_code=status.HTTP_201_CREATED,
+          summary="[Optional] Upload file with molecules",
           tags=['Substructure search'])
-async def upload_molecules(file: UploadFile | None = None, 
+async def upload_molecules(file: UploadFile | None = None,
                            n: int = float('inf'), start: int = 1):
     """
     *[Optional]* Upload `n` molecules and add smiles to container
@@ -146,16 +146,16 @@ async def upload_molecules(file: UploadFile | None = None,
     Upload a text `file` with molecules as SMILES strings on separate lines.
     """
     if file is None:
-        upload = ["CCO", "c1ccccc1", "Cc1ccccc1", "C(=O)O", 
+        upload = ["CCO", "c1ccccc1", "Cc1ccccc1", "C(=O)O",
                   "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"]
-    elif (file.filename.endswith(('.txt')) and 
+    elif (file.filename.endswith(('.txt')) and
           file.content_type == 'text/plain'):
         upload = await file.read()
         upload = upload.decode('utf-8').replace('\r', '').split('\n')
     else:
         raise HTTPException(
             status_code=400,
-            detail=f"Upload a text file with molecules as SMILES strings."
+            detail="Upload a text file with molecules as SMILES strings."
             )
     i = start
     end = min(len(upload), max(0, n)) + start
