@@ -8,14 +8,17 @@ from os import getenv
 
 def substructure_search(mols: List[str], mol: str) -> List[str]:
     """
-    Find and return a list of all molecules as SMILES strings from *mols* 
-    that contain substructure *mol* as SMILES string.
+    Find and return a list of all molecules as SMILES strings from *`mols`*
+    that contain substructure *`mol`* as SMILES string.
     """
+    if not (isinstance(mols, (list, tuple, set)) and
+            all(map(lambda x: isinstance(x, str), mols))):
+        raise TypeError('an input value does not match the expected data type')
     mol = MolFromSmiles(mol)
     if mol is None:
         return []
-    return [smiles for smiles in mols 
-            if (compound := MolFromSmiles(smiles)) and 
+    return [smiles for smiles in mols
+            if (compound := MolFromSmiles(smiles)) and
             compound.HasSubstructMatch(mol)]
 
 
@@ -33,7 +36,7 @@ molecules = {}
 def get_server():
     """
     You should be able to access the application on your browser.
-    Confirm that the load balancer distributes the request to both 
+    Confirm that the load balancer distributes the request to both
     web containers.
     """
     return {"server_id": getenv("SERVER_ID", "1")}
@@ -44,19 +47,19 @@ def retrieve_all_molecules():
     return list(molecules.values())
 
 
-@app.post("/smiles/", status_code=status.HTTP_201_CREATED, 
+@app.post("/smiles/", status_code=status.HTTP_201_CREATED,
           tags=['Storing molecule SMILES'])
 def add_molecule_smiles(new: Molecule):
     if new.identifier in molecules:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"The molecule with identifier {new.identifier} \
                 is found, duplicate key raised an IntegrityError"
                 )
     else:
         if MolFromSmiles(new.smiles) is None:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"SMILES Parse Error: syntax error \
                     for input: {new.smiles}"
                     )
@@ -69,7 +72,7 @@ def retrieve_molecule_by_id(identifier: int):
     if identifier in molecules:
         return molecules[identifier]
     raise HTTPException(
-        status_code=404, 
+        status_code=404,
         detail=f"The molecule with identifier {identifier} is not found."
         )
 
@@ -78,21 +81,24 @@ def retrieve_molecule_by_id(identifier: int):
 def update_molecule(identifier: int, updated: Molecule):
     if identifier != updated.identifier:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"The molecule identifiers {identifier} \
                 != {updated.identifier} do not match."
                 )
     elif identifier in molecules:
         if MolFromSmiles(updated.smiles) is None:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"SMILES Parse Error: syntax error \
                     for input: {updated.smiles}"
                     )
         molecules[identifier] = updated
         return molecules[identifier]
     else:
-        raise HTTPException(status_code=404, detail=f"The molecule with identifier {identifier} is not found.")
+        raise HTTPException(
+            status_code=404,
+            detail=f"A molecule with identifier {identifier} is not found."
+            )
 
 
 @app.delete("/smiles/{identifier}", tags=['Storing molecule SMILES'],
@@ -103,40 +109,58 @@ def delete_molecule(identifier: int):
         return molecules.pop(identifier)
     else:
         raise HTTPException(
-            status_code=404, 
+            status_code=404,
             detail=f"The molecule with identifier \
                 {identifier} is not found."
             )
 
+
 @app.get("/search/{mol}", tags=['Substructure search'])
 def search_molecules(mol: str = None):
-    """ 
-    Substructure search for all added molecules 
+    """
+    Substructure search for all added molecules
 
     - **mol**: a unique SMILES string for this substructure molecule,
-    - **return** a list of all molecules that contain substructure _mol_ as SMILES strings
+    - **return** a list of all molecules that contain 
+    substructure `mol` as SMILES strings
     """
     if len(molecules) > 0 and mol is not None:
         mols = [molecule.smiles for molecule in molecules.values()]
         return substructure_search(mols, mol)
     else:
-        raise HTTPException(status_code=400, detail=f"The molecules aren't provided for substructure search.")
+        raise HTTPException(
+            status_code=400,
+            detail="The molecules for substructure search aren't provided"
+            )
 
-@app.post("/molecules/", status_code=status.HTTP_201_CREATED, summary="[Optional] Upload file with molecules", tags=['Substructure search'])
-async def upload_molecules(file: UploadFile | None = None, n: int = float('inf'), start: int = 1):
-    """ [Optional] Upload n molecules and add smiles to container starting from identifier start 
-    Upload a text file with molecules as SMILES strings on separate lines. """
+
+@app.post("/molecules/", status_code=status.HTTP_201_CREATED, 
+          summary="[Optional] Upload file with molecules", 
+          tags=['Substructure search'])
+async def upload_molecules(file: UploadFile | None = None, 
+                           n: int = float('inf'), start: int = 1):
+    """
+    *[Optional]* Upload `n` molecules and add smiles to container
+    starting from identifier `start`
+    ---
+    Upload a text `file` with molecules as SMILES strings on separate lines.
+    """
     if file is None:
-        upload = ["CCO", "c1ccccc1", "Cc1ccccc1", "C(=O)O", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"]
-    elif file.filename.endswith(('.txt')) and file.content_type == 'text/plain':
+        upload = ["CCO", "c1ccccc1", "Cc1ccccc1", "C(=O)O", 
+                  "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"]
+    elif (file.filename.endswith(('.txt')) and 
+          file.content_type == 'text/plain'):
         upload = await file.read()
-        upload = upload.decode('utf-8').replace('\r','').split('\n')
+        upload = upload.decode('utf-8').replace('\r', '').split('\n')
     else:
-        raise HTTPException(status_code=400, detail=f"Upload a text file with molecules as SMILES strings.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Upload a text file with molecules as SMILES strings."
+            )
     i = start
     end = min(len(upload), max(0, n)) + start
     while i < end:
-        smiles=upload[i - start].strip()
+        smiles = upload[i - start].strip()
         if smiles and MolFromSmiles(smiles) is not None:
             molecules[i] = Molecule(identifier=i, smiles=smiles)
         i += 1
@@ -147,7 +171,7 @@ if __name__ == "__main__":
     import uvicorn
 
     example = substructure_search(
-        ["CCO", "c1ccccc1", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"], 
+        ["CCO", "c1ccccc1", "CC(=O)O", "CC(=O)Oc1ccccc1C(=O)O"],
         "c1ccccc1")
     assert example == ["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"]
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
