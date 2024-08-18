@@ -2,6 +2,9 @@ hw/
 images/
 .git
 .gitignore
+__pycache__
+**/__pycache__
+*.pyc
 
 # Environments
 .venv
