@@ -2,6 +2,8 @@
 services:
   web1:
     build: ./src
+    ports:
+      - "8000:8000"
     volumes:
       - ./src:/src
     environment:
@@ -9,6 +11,8 @@ services:
 
   web2:
     build: ./src
+    ports:
+      - "8080:8000"
     volumes:
       - ./src:/src
     environment:

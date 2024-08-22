@@ -1,8 +1,8 @@
-FROM continuumio/miniconda3
-RUN conda install conda-forge::rdkit
-COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+FROM python:3.12.5-alpine3.20
 WORKDIR /src
+COPY requirements.txt /src/requirements.txt
+RUN pip install --no-cache-dir -r /src/requirements.txt
 EXPOSE 8000
 COPY . /src
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+ENTRYPOINT uvicorn main:app --host 0.0.0.0 --port 8000
+CMD ["--proxy-headers"]
