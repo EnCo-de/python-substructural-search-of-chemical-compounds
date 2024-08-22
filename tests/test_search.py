@@ -45,7 +45,7 @@ def test_substructure_none(molecules_storage):
     assert substructure_search(molecules_storage, None) == ["C"]
 
 
-def test_function_raises_exceptions(molecules_storage):
+def test_function_raises_exceptions_str_input():
     mols = 'CCOc1ccccc1'
     mol = 'O'
     expected = ['CCO', 'CC(=O)O']
@@ -53,10 +53,16 @@ def test_function_raises_exceptions(molecules_storage):
     with raises(TypeError, match='input value'):
         substructure_search(mols, mol) == expected
     with raises(TypeError, match='input value'):
+        substructure_search("CC(=O)Oc1ccccc1C(=O)O", "C")
+
+
+def test_function_raises_exceptions_int_input(molecules_storage):
+    with raises(TypeError, match='input value'):
         molecules_storage.extend([1, 2, 3])
         substructure_search(molecules_storage, "C")
-    with raises(TypeError, match='input value'):
-        substructure_search("CC(=O)Oc1ccccc1C(=O)O", "C")
+
+
+def test_function_raises_exceptions_no_args(molecules_storage):
     with raises(TypeError, match=r'missing \d required positional argument'):
         substructure_search()
     with raises(TypeError, match=r'missing \d required positional argument'):
