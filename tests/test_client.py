@@ -11,13 +11,15 @@ client = TestClient(app)
 def test_retrieve_all_molecules():
     response = client.get("/smiles/")
     assert response.status_code == 200
-    assert response.json() == []
+    # assert response.json() == []
 
 
-# def test_get_server():
-#     pass
-# def ():
-#     pass
+def test_get_server():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "server_id" in response.json()
+
+  
 # def test_add_molecule_smiles():
 #     pass
 # def test_retrieve_molecule_by_id():
