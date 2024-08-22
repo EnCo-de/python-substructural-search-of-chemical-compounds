@@ -43,7 +43,11 @@ def get_server():
 
 
 @app.get("/smiles/", tags=['Checking stored molecule SMILES'])
-def retrieve_all_molecules():
+def retrieve_all_molecules(limit: int = 100, offset: int = 1):
+    '''
+    Beginning from *offset, limit* the number of molecules in the response.
+    '''
+    # TODO: remake the function into an iterator
     return list(molecules.values())
 
 
