@@ -34,7 +34,11 @@ def get_server():
     return {"server_id": getenv("SERVER_ID", "1")}
 
 @app.get("/smiles/", tags=['Checking stored molecule SMILES'])
-def retrieve_all_molecules():
+def retrieve_all_molecules(limit: int = 100, offset: int = 1):
+    '''
+    Beginning from *offset, limit* the number of molecules in the response.
+    '''
+    # TODO: remake the function into an iterator
     return list(molecules.values())
 
 @app.post("/smiles/", status_code=status.HTTP_201_CREATED, tags=['Storing molecule SMILES'])
