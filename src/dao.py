@@ -1,9 +1,10 @@
-from .main import Molecule
-from app.dao.base import BaseDAO
-
-from sqlalchemy import create_engine, URL, String
+# from src.main import Molecule
+# from app.dao.base import BaseDAO
+from typing import List, Self
+from sqlalchemy import create_engine, URL, String, exc
 from sqlalchemy import select, text
-from sqlalchemy.orm import Session, DeclarativeBase, Mapped, mapped_column  # , relationship
+from sqlalchemy.orm import (Session, DeclarativeBase, Mapped, 
+                            mapped_column)  # , relationship
 
 url_object = URL.create(
     "postgresql+psycopg2",
@@ -14,25 +15,27 @@ url_object = URL.create(
 )
 
 # engine = create_engine(url_object)
-# engine = create_engine("postgresql+psycopg2://scott:tiger@localhost:5432/mydatabase")
+# engine = create_engine("postgresql+psycopg2://" 
+#                        "scott:tiger@localhost:5432/mydatabase")
 # dialect+driver://username:password@host:port/database
-engine = create_engine("sqlite:///..\\..\\SMILESstorage.db", echo=True)
+engine = create_engine("sqlite:///..\\..\\SMILESstorage.db")
+# , echo=True)
 
 
 class Base(DeclarativeBase):
     pass
 
 
-
+# table structure
 class Molecules(Base):
     __tablename__ = "molecules"
     id: Mapped[int] = mapped_column(primary_key=True)
     smiles: Mapped[str] = mapped_column(String(2778), nullable=False)
     
     def __repr__(self) -> str:
-        return f"{self.id!r}. {self.smiles!r}"
+        return f"<{self.id!r}. {self.smiles!r}>"
 
-# Molecules.__repr__ = lambda self: f"{self.id!r}. {self.smiles!r}"
+
 Molecules.metadata.create_all(engine, checkfirst=True)
 
 
@@ -42,7 +45,7 @@ is a complex yet discrete cluster with 52 metallic atoms and a SMILES
 string of 2778 characters.
 '''
 
-
+""" 
 with engine.begin() as conn:
     conn.execute(
         text("INSERT INTO molecules (smiles) VALUES (:x);"),
@@ -64,7 +67,7 @@ with engine.begin() as conn:
     )
 
 # from src.main import Molecule
-
+ """
 class BaseDAO:
     model = None
     
@@ -78,7 +81,7 @@ class BaseDAO:
         # outer context calls session.close()
     
     @classmethod
-    def all(cls):
+    def all(cls) -> Molecules:
         # create session and get objects
         with Session(engine) as session:  # , session.begin():
             result = session.scalars(select(cls.model)).all()
@@ -86,22 +89,52 @@ class BaseDAO:
         return result
     
     @classmethod
-    def get(cls, **data: dict): TODO
+    def filter(cls, **data: dict) -> Molecules:
         # create session and get objects
         with Session(engine) as session:  # , session.begin():
-            result = session.scalars(select(cls.model)).all()
+            query = select(cls.model).filter_by(**data)
+            result = session.scalars(query).all()
         # context calls session.close()
         return result
+    
+    @classmethod
+    def get(cls, **data: dict) -> Self:
+        """
+        Create session and get exactly one scalar result or
+        raise an exception.
+
+        Raises [NoResultFound](https://docs.sqlalchemy.org/en/20/core/exceptions.html#sqlalchemy.exc.NoResultFound)
+        if the result returns no rows, or
+        [MultipleResultsFound](https://docs.sqlalchemy.org/en/20/core/exceptions.html#sqlalchemy.exc.MultipleResultsFound)
+        if multiple rows would be returned.
+        """
+        # sqlalchemy.exc.NoResultFound: No row was found when one was required
+        # sqlalchemy.exc.MultipleResultsFound: Multiple rows were found when exactly one was required
+        with Session(engine) as session:  # , session.begin():
+            query = select(cls.model).filter_by(**data)
+            result = session.scalars(query).one()
+        # context calls session.close()
+        return result
+
+        # result = cls.filter(**data).scalar_one()
 
 
 class MoleculeDAO(BaseDAO):
     model = Molecules
     # identifier: int
     # smiles: str
+        
+    @classmethod
+    def smiles(cls) -> List[str]:
+        # create session and get objects
+        with Session(engine) as session, session.begin():
+            result = session.scalars(select(cls.model.smiles)).all()
+        # context calls session.close()
+        return result
 
 #######
 
-    @classmethod
+"""     @classmethod
     async def find_all_drugs(cls):
             return drugs.scalars().all()
 
@@ -138,4 +171,4 @@ class MoleculeDAO(BaseDAO):
                 await session.commit()
                 return drug_id
 
-
+ """
