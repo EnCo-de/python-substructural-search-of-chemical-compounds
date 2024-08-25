@@ -2,7 +2,7 @@
 # from app.dao.base import BaseDAO
 from typing import List, Self
 from sqlalchemy import create_engine, URL, String, exc
-from sqlalchemy import select, text
+from sqlalchemy import select, insert, text
 from sqlalchemy.orm import (Session, DeclarativeBase, Mapped, 
                             mapped_column)  # , relationship
 
@@ -72,7 +72,7 @@ class BaseDAO:
     model = None
     
     @classmethod
-    def create(cls, **data: dict):
+    def create(cls, **data: dict) -> None:
         new_object = cls.model(**data)
         # create session and add objects
         with Session(engine) as session, session.begin():
@@ -85,15 +85,6 @@ class BaseDAO:
         # create session and get objects
         with Session(engine) as session:  # , session.begin():
             result = session.scalars(select(cls.model)).all()
-        # context calls session.close()
-        return result
-    
-    @classmethod
-    def filter(cls, **data: dict) -> Molecules:
-        # create session and get objects
-        with Session(engine) as session:  # , session.begin():
-            query = select(cls.model).filter_by(**data)
-            result = session.scalars(query).all()
         # context calls session.close()
         return result
     
@@ -118,57 +109,70 @@ class BaseDAO:
 
         # result = cls.filter(**data).scalar_one()
 
+    @classmethod
+    def filter(cls, **data: dict) -> Molecules:
+        # create session and get objects
+        with Session(engine) as session:  # , session.begin():
+            query = select(cls.model).filter_by(**data)
+            result = session.scalars(query).all()
+        # context calls session.close()
+        return result
+    
+    @classmethod
+    def delete(cls, id: int) -> Molecules:
+        """ create session and delete objects """
+        with Session(engine) as session, session.begin():
+            item = session.get_one(cls.model, id)
+            """
+            Return exactly one instance based on the given primary key identifier, or raise an exception if not found.
+
+            Raises sqlalchemy.orm.exc.NoResultFound if the query selects no rows. """
+            # sqlalchemy.exc.NoResultFound: No row was found when one was required
+            session.delete(item)
+        # context calls session.close()
+        return item
+    
 
 class MoleculeDAO(BaseDAO):
     model = Molecules
-    # identifier: int
-    # smiles: str
-        
+       
     @classmethod
     def smiles(cls) -> List[str]:
-        # create session and get objects
+        """ Get stored SMILES strings """
         with Session(engine) as session, session.begin():
             result = session.scalars(select(cls.model.smiles)).all()
         # context calls session.close()
         return result
-
-#######
-
-"""     @classmethod
-    async def find_all_drugs(cls):
-            return drugs.scalars().all()
-
+    
     @classmethod
-    async def find_full_data(cls, drug_id):
-        async with async_session_maker() as session:
-            # Query to get drug info
-            query = select(cls.model).filter_by(id=drug_id)
-            result = await session.execute(query)
-            drug_info = result.scalar_one_or_none()
-
-            # If drug is not found, return None
-            if not drug_info:
-                return None
-
-            drug_data = drug_info.to_dict()
-            return drug_data
-
-
+    def insert(cls, *smiles: str) -> Molecules | int:
+        """
+        - Store one `smiles` string of a chemical compound.
+        
+        - Store many `smiles` strings as arguments separated by ` , `.
+        """
+        with Session(engine) as session, session.begin():
+            values = [{'smiles': s} for s in smiles]
+            statement = insert(cls.model).values(values).returning(cls.model)
+            result = session.execute(statement).all()
+            # session.add(instance)
+        # inner context calls session.commit(), if there were no exceptions
+        # outer context calls session.close()
+        # return result
+    
     @classmethod
-    async def delete_drug_by_id(cls, drug_id: int):
-        async with async_session_maker() as session:
-            async with session.begin():
-                query = select(cls.model).filter_by(id=drug_id)
-                result = await session.execute(query)
-                drug_to_delete = result.scalar_one_or_none()
+    def update(cls, id: int, smiles: str) -> None:
+        """ create session and update an object by id """
+        with Session(engine) as session, session.begin():
+            instance = session.get_one(cls.model, id)
+            """
+            Return exactly one instance based on the given primary key identifier, or raise an exception if not found.
 
-                if not drug_to_delete:
-                    return None
-
-                # Delete the drug
-                await session.execute(delete(cls.model).filter_by(id=drug_id))
-
-                await session.commit()
-                return drug_id
-
- """
+            Raises sqlalchemy.orm.exc.NoResultFound if the query selects no rows. """
+            # sqlalchemy.exc.NoResultFound: No row was found when one was required
+            # session.update(instance)
+            instance.smiles = smiles
+            # session.add(instance)
+        # inner context calls session.commit(), if there were no exceptions
+        # outer context calls session.close()
+        # return instance
