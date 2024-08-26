@@ -81,12 +81,18 @@ class BaseDAO:
         # outer context calls session.close()
     
     @classmethod
-    def all(cls) -> Molecules:
+    def all(cls, limit: int = 100, offset: int = 0) -> Molecules:
+        '''
+        You can change the query to get at maximum some number of results with *`limit`*.
+
+        And the same way, you can skip the first results with *`offset`*.
+        '''
         # create session and get objects
         with Session(engine) as session:  # , session.begin():
-            result = session.scalars(select(cls.model)).all()
+            statement = select(cls.model).offset(offset).limit(limit)
+            results = session.scalars(statement).all()
         # context calls session.close()
-        return result
+        return results
     
     @classmethod
     def get(cls, **data: dict) -> Self:
