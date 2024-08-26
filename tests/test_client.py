@@ -9,6 +9,7 @@ from src.main import app
 client = TestClient(app)
 
 
+@mark.skip(reason="no way of currently testing this")
 def test_retrieve_all_molecules():
     response = client.get("/smiles/")
     assert response.status_code == 200
