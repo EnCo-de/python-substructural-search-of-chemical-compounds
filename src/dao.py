@@ -5,6 +5,7 @@ from sqlalchemy import create_engine, URL, String, exc
 from sqlalchemy import select, insert, text
 from sqlalchemy.orm import (Session, DeclarativeBase, Mapped, 
                             mapped_column)  # , relationship
+from sqlalchemy.exc import IntegrityError, NoResultFound, SQLAlchemyError
 
 url_object = URL.create(
     "postgresql+psycopg2",
@@ -36,38 +37,12 @@ class Molecules(Base):
         return f"<{self.id!r}. {self.smiles!r}>"
 
 
-Molecules.metadata.create_all(engine, checkfirst=True)
-
-
 '''
 Just as a matter of curiosity, the longest SMILES string created so far
 is a complex yet discrete cluster with 52 metallic atoms and a SMILES
 string of 2778 characters.
 '''
 
-""" 
-with engine.begin() as conn:
-    conn.execute(
-        text("INSERT INTO molecules (smiles) VALUES (:x);"),
-        [{"x": "y"}, {"x": "pourquie"}],
-    )
-    ql = conn.execute(
-        text("SELECT * FROM molecules;")
-    )
-    for q in ql:
-        print(q)
-
-
-
-
-#    conn.execute(sqlalchemy.text("CREATE TABLE some_table (x int, y int)"))
-    conn.execute(
-        sqlalchemy.text("INSERT INTO some_table (x, y) VALUES (:x, :y)"),
-#        [{"x": 1, "y": 1}, {"x": 2, "y": 4}],
-    )
-
-# from src.main import Molecule
- """
 class BaseDAO:
     model = None
     
@@ -83,9 +58,11 @@ class BaseDAO:
     @classmethod
     def all(cls, limit: int = 100, offset: int = 0) -> Molecules:
         '''
-        You can change the query to get at maximum some number of results with *`limit`*.
+        You can change the query to get at maximum
+        some number of results with *`limit`*.
 
-        And the same way, you can skip the first results with *`offset`*.
+        And the same way, you can skip the
+        first results with *`offset`*.
         '''
         # create session and get objects
         with Session(engine) as session:  # , session.begin():
@@ -123,6 +100,21 @@ class BaseDAO:
             result = session.scalars(query).all()
         # context calls session.close()
         return result
+
+    @classmethod
+    def last(cls, limit: int = 1, **data: dict) -> Molecules:
+        # create session and get objects
+        with Session(engine) as session:  # , session.begin():
+            query = (select(cls.model).filter_by(**data)
+                     .order_by(cls.model.id.desc())
+                     .limit(limit))
+            print(query)
+            if limit > 1:
+                result = session.scalars(query).all()
+            elif limit == 1:
+                result = session.scalars(query).one()
+        # context calls session.close()
+        return result
     
     @classmethod
     def delete(cls, id: int) -> Molecules:
@@ -143,12 +135,22 @@ class MoleculeDAO(BaseDAO):
     model = Molecules
        
     @classmethod
-    def smiles(cls) -> List[str]:
-        """ Get stored SMILES strings """
+    def smiles(cls, limit: int = 100, offset: int = 0) -> List[str]:
+        """ Get stored SMILES strings
+
+        You can change the query to get at maximum
+        some number of results with *`limit`*.
+
+        And the same way, you can skip the
+        first results with *`offset`*.
+        """
         with Session(engine) as session, session.begin():
-            result = session.scalars(select(cls.model.smiles)).all()
+            statement = (select(cls.model.smiles)
+                         .offset(offset)
+                         .limit(limit))
+            results = session.scalars(statement).all()
         # context calls session.close()
-        return result
+        return results
     
     @classmethod
     def insert(cls, *smiles: str) -> Molecules | int:
