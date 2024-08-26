@@ -1,4 +1,3 @@
-# import io
 from typing import List  # , Union, Optional
 from rdkit.Chem import MolFromSmiles  # , Draw
 from fastapi import FastAPI, status, HTTPException, UploadFile
@@ -11,7 +10,7 @@ def substructure_search(mols: List[str], mol: str) -> List[str]:
     Find and return a list of all molecules as SMILES strings from *`mols`*
     that contain substructure *`mol`* as SMILES string.
     """
-    if not (isinstance(mols, (list, tuple, set)) and
+    if not (isinstance(mols, (list, tuple)) and
             all(map(lambda x: isinstance(x, str), mols))):
         raise TypeError('an input value does not match the expected data type')
     mol = MolFromSmiles(mol)
@@ -43,7 +42,7 @@ def get_server():
 
 
 @app.get("/smiles/", tags=['Checking stored molecule SMILES'])
-def retrieve_all_molecules(limit: int = 100, offset: int = 1):
+def retrieve_all_molecules(limit: int = 100, offset: int = 0):
     '''
     Beginning from *offset, limit* the number of molecules in the response.
     '''

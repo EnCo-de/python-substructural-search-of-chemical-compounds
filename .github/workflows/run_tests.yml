@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - storing-molecules
   pull_request:
     branches: [main,develop]
 
@@ -25,4 +26,4 @@ jobs:
           pytest tests -v
       - name: Linting with flake8
         run: |
-          flake8 src/main.py
+          flake8 src/main.py src/dao.py
