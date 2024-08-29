@@ -139,7 +139,7 @@ class BaseDAO:
 
 class MoleculeDAO(BaseDAO):
     model = Molecules
-    
+
     @classmethod
     def smiles(cls, limit: int = 100, offset: int = 0) -> List[str]:
         """ Get stored SMILES strings

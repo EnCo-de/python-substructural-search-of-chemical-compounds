@@ -8,7 +8,10 @@ from src.dao import MoleculeDAO
 # from .dao import MoleculeDAO
 
 
-def substructure_search(mols: List[str], mol: str) -> Generator[str, None, None]:
+def substructure_search(
+        mols: List[str],
+        mol: str
+        ) -> Generator[str, None, None]:
     """
     Find and return a list of all molecules as SMILES strings from *`mols`*
     that contain substructure *`mol`* as SMILES string.
@@ -20,8 +23,8 @@ def substructure_search(mols: List[str], mol: str) -> Generator[str, None, None]
     if mol is not None:
         for smiles in mols:
             if ((compound := MolFromSmiles(smiles)) and
-                compound.HasSubstructMatch(mol)):
-                yield smiles 
+                    compound.HasSubstructMatch(mol)):
+                yield smiles
 
 
 class Molecule(BaseModel):
