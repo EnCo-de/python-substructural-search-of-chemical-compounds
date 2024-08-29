@@ -1,14 +1,14 @@
-from typing import List  # , Union, Optional
+from typing import List, Generator  # , Union, Optional
 from rdkit.Chem import MolFromSmiles  # , Draw
 from fastapi import FastAPI, status, HTTPException, UploadFile
 from pydantic import BaseModel
-from sqlalchemy.exc import IntegrityError, NoResultFound, SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, NoResultFound  # , SQLAlchemyError
 from os import getenv
 from src.dao import MoleculeDAO
 # from .dao import MoleculeDAO
 
 
-def substructure_search(mols: List[str], mol: str) -> List[str]:
+def substructure_search(mols: List[str], mol: str) -> Generator[str, None, None]:
     """
     Find and return a list of all molecules as SMILES strings from *`mols`*
     that contain substructure *`mol`* as SMILES string.
@@ -17,11 +17,11 @@ def substructure_search(mols: List[str], mol: str) -> List[str]:
             all(map(lambda x: isinstance(x, str), mols))):
         raise TypeError('an input value does not match the expected data type')
     mol = MolFromSmiles(mol)
-    if mol is None:
-        return []
-    return [smiles for smiles in mols
-            if (compound := MolFromSmiles(smiles)) and
-            compound.HasSubstructMatch(mol)]
+    if mol is not None:
+        for smiles in mols:
+            if ((compound := MolFromSmiles(smiles)) and
+                compound.HasSubstructMatch(mol)):
+                yield smiles 
 
 
 class Molecule(BaseModel):
@@ -49,7 +49,6 @@ def retrieve_all_molecules(limit: int = 100, offset: int = 0):
     '''
     Beginning from *offset, limit* the number of molecules in the response.
     '''
-    # TODO: remake the function into an iterator
     return MoleculeDAO.all(limit, offset)
 
 
@@ -60,19 +59,20 @@ def add_molecule_smiles(smiles: str):
         raise HTTPException(
             status_code=400,
             detail=("SMILES Parse Error: syntax error "
-                f"for input '{smiles}'.")
-                )
-    try:
-        MoleculeDAO.create(smiles=smiles)
-    except IntegrityError as e:
-        print(e)
-        raise HTTPException(
-            status_code=400,
-            detail=("The molecule is found, duplicate raised "
-                "an IntegrityError: UNIQUE constraint failed")
-                )
+                    f"for input '{smiles}'.")
+                    )
     else:
-        return MoleculeDAO.last(smiles=smiles)
+        try:
+            MoleculeDAO.create(smiles=smiles)
+        except IntegrityError as e:
+            print(e)
+            raise HTTPException(
+                status_code=400,
+                detail=("The molecule is found, duplicate raised "
+                        "an IntegrityError: UNIQUE constraint failed")
+                        )
+        else:
+            return MoleculeDAO.last(smiles=smiles)
 
 
 @app.get("/smiles/{identifier}", tags=['Checking stored molecule SMILES'])
@@ -100,8 +100,8 @@ def create_update_molecule(identifier: int, updated: Molecule):
     if MolFromSmiles(updated.smiles) is None:
         raise HTTPException(
             status_code=400,
-            detail=f"SMILES Parse Error: syntax error \
-                for input: {updated.smiles}"
+            detail=("SMILES Parse Error: syntax error "
+                    f"for input: {updated.smiles}")
                 )
     try:
         MoleculeDAO.update(id=identifier, smiles=updated.smiles)
@@ -131,29 +131,40 @@ def delete_molecule(identifier: int):
 
 
 @app.get("/search/{mol}", tags=['Substructure search'])
-def search_molecules(mol: str = None):
+def search_molecules(mol: str = None, max_num: int = 0):
     """
     Substructure search for all added molecules
 
     - **mol**: a unique SMILES string for this substructure molecule,
     - **return** a list of all molecules that contain
     substructure `mol` as SMILES strings
+    - get the first **max_num** chemical compounds
+    that contain substructure `mol`
     """
     molecules = MoleculeDAO.smiles()
-    if len(molecules) > 0 and mol is not None:
-        return substructure_search(molecules, mol)
-    else:
+    if len(molecules) < 1 and mol is None:
         raise HTTPException(
             status_code=400,
             detail="The molecules for substructure search aren't provided"
             )
+    if max_num == 0:
+        return list(substructure_search(molecules, mol))
+    num = 0
+    chemical_compounds = []
+    for compound in substructure_search(molecules, mol):
+        chemical_compounds.append(compound)
+        num += 1
+        if num == max_num:
+            break
+
+        return chemical_compounds
 
 
 @app.post("/molecules/", status_code=status.HTTP_201_CREATED,
           summary="[Optional] Upload file with molecules",
           tags=['Substructure search'])
 async def upload_molecules(file: UploadFile | None = None):
-                        #   , n: int = float('inf'), start: int = 1):
+    #   , n: int = float('inf'), start: int = 1):
     """
     *[Optional]*
     ---
