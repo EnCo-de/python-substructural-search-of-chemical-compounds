@@ -8,14 +8,14 @@ def molecules_storage():
 
 
 def test_substructure_search(molecules_storage):
-    example = substructure_search(molecules_storage, "c1ccccc1")
+    example = list(substructure_search(molecules_storage, "c1ccccc1"))
     assert example == ["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"]
-    assert substructure_search(molecules_storage, "not-SMILES") == []
-    assert substructure_search(
+    assert list(substructure_search(molecules_storage, "not-SMILES")) == []
+    assert list(substructure_search(
         ["not-SMILES","CC(=O)Oc1ccccc1C(=O)O","not-SMILES","not-SMILES"],
-        "c1ccccc1") == ["CC(=O)Oc1ccccc1C(=O)O"]
+        "c1ccccc1")) == ["CC(=O)Oc1ccccc1C(=O)O"]
     expected = ['CCO', 'CC(=O)O']
-    assert substructure_search(tuple(expected), "O") == expected
+    assert list(substructure_search(tuple(expected), "O")) == expected
 
 
 @mark.parametrize("mols, mol, expected", [
@@ -26,12 +26,12 @@ def test_substructure_search(molecules_storage):
     (["CCO", "c1ccccc1", "CC(=O)O", "C"], 'O',  ["CCO", "CC(=O)O"]),
     ])
 def test_parametrize_search(mols, mol, expected):
-    assert substructure_search(mols, mol) == expected
+    assert list(substructure_search(mols, mol)) == expected
 
 
 @mark.xfail(reason="SMILES Parse Error")
 def test_substructure_str():
-    assert substructure_search(["CC(=O)Oc1ccccc1C(=O)O"], "C2(OH)4") == ["C"]
+    assert list(substructure_search(["CC(=O)Oc1ccccc1C(=O)O"], "C2(OH)4")) == ["C"]
 
 
 @mark.skip(reason="no way of currently testing this")
@@ -42,7 +42,7 @@ def test_skip():
 text = "TypeError: No converter to C++ value from NoneType object"
 @mark.xfail(raises=TypeError, reason=text)
 def test_substructure_none(molecules_storage):
-    assert substructure_search(molecules_storage, None) == ["C"]
+    assert list(substructure_search(molecules_storage, None)) == ["C"]
 
 
 def test_function_raises_exceptions_str_input():
@@ -51,15 +51,15 @@ def test_function_raises_exceptions_str_input():
     expected = ['CCO', 'CC(=O)O']
     # reason="Wrong argument data type"
     with raises(TypeError, match='input value'):
-        substructure_search(mols, mol) == expected
+        next(substructure_search(mols, mol))
     with raises(TypeError, match='input value'):
-        substructure_search("CC(=O)Oc1ccccc1C(=O)O", "C")
+        next(substructure_search("CC(=O)Oc1ccccc1C(=O)O", "C"))
 
 
 def test_function_raises_exceptions_int_input(molecules_storage):
     with raises(TypeError, match='input value'):
         molecules_storage.extend([1, 2, 3])
-        substructure_search(molecules_storage, "C")
+        next(substructure_search(molecules_storage, "C"))
 
 
 def test_function_raises_exceptions_no_args(molecules_storage):
