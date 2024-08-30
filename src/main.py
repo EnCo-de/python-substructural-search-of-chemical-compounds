@@ -1,10 +1,13 @@
 from typing import List, Generator  # , Union, Optional
 from rdkit.Chem import MolFromSmiles  # , Draw
 from fastapi import FastAPI, status, HTTPException, UploadFile
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, NoResultFound  # , SQLAlchemyError
 from os import getenv
 from src.dao import MoleculeDAO
+from src.logger import logger
+from src.middleware import log_process_time
 
 
 def substructure_search(
@@ -32,8 +35,9 @@ class Molecule(BaseModel):
 
 
 app = FastAPI()
-
-molecules = {}
+app.add_middleware(BaseHTTPMiddleware, dispatch=log_process_time)
+# molecules = {}
+logger.info("Started uvicorn web container")
 
 
 @app.get("/", summary='Check nginx load balancing', tags=['Load balancer'])
