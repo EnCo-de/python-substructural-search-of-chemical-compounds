@@ -1,6 +1,8 @@
 instance/*
 !instance/.gitignore
 .webassets-cache
+
+#  Usually these files are ignored
 # .env
 
 ### Flask.Python Stack ###

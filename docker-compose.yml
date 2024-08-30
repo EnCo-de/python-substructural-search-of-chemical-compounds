@@ -17,6 +17,7 @@ services:
       - "8080:8000"
     volumes:
       - ./src:/src
+    env_file: ".env"
     environment:
       SERVER_ID: SERVER-2
     depends_on:
