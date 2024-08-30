@@ -1,3 +1,4 @@
+from os import getenv
 from typing import List
 from sqlalchemy import create_engine, URL, String
 from sqlalchemy import select, insert  # , text, exc
@@ -7,18 +8,29 @@ from sqlalchemy.orm import (Session, DeclarativeBase, Mapped,
 
 url_object = URL.create(
     "postgresql+psycopg2",
-    username="postgres",
-    password="kx@jj5/g",  # plain (unescaped) text
-    host="localhost",
-    database="molecules",
+    username=getenv("DB_USER", "postgres"),
+    password=getenv("DB_PASSWORD", "kx@jj5/g"),  # plain (unescaped) text
+    host=getenv("DB_HOST", "localhost"),
+    database=getenv("DB_NAME", "compounds"),
 )
 
-# engine = create_engine(url_object)
+# url_object = URL.create(
+#     "postgresql+psycopg2",
+#     username="postgres",
+#     password="kx@jj5/g",  # plain (unescaped) text
+#     host="localhost",
+#     database="molecules",
+# )
+
 # engine = create_engine("postgresql+psycopg2://"
 #                        "scott:tiger@localhost:5432/mydatabase")
 # dialect+driver://username:password@host:port/database
-engine = create_engine("sqlite:///..\\..\\SMILESstorage.db")
-# , echo=True)
+if getenv("DB_HOST") == 'postgres':
+    engine = create_engine(url_object)
+else:
+    engine = create_engine("sqlite:///..\\..\\SMILESstorage.db")
+    # , echo=True)
+print(url_object, engine)
 
 
 class Base(DeclarativeBase):
