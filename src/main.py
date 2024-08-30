@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, NoResultFound  # , SQLAlchemyError
 from os import getenv
 from src.dao import MoleculeDAO
-# from .dao import MoleculeDAO
 
 
 def substructure_search(
@@ -134,7 +133,8 @@ def delete_molecule(identifier: int):
 
 
 @app.get("/search/{mol}", tags=['Substructure search'])
-def search_molecules(mol: str = None, max_num: int = 0):
+def search_molecules(mol: str = None, max_num: int = 0,
+                     limit: int = 100, offset: int = 0):
     """
     Substructure search for all added molecules
 
@@ -144,8 +144,8 @@ def search_molecules(mol: str = None, max_num: int = 0):
     - get the first **max_num** chemical compounds
     that contain substructure `mol`
     """
-    molecules = MoleculeDAO.smiles()
-    if len(molecules) < 1 and mol is None:
+    molecules = MoleculeDAO.smiles(limit, offset)
+    if len(molecules) < 1 or mol is None:
         raise HTTPException(
             status_code=400,
             detail="The molecules for substructure search aren't provided"
@@ -159,7 +159,6 @@ def search_molecules(mol: str = None, max_num: int = 0):
         num += 1
         if num == max_num:
             break
-
         return chemical_compounds
 
 
