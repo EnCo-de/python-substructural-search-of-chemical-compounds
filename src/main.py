@@ -69,10 +69,14 @@ def add_molecule_smiles(smiles: str):
         except IntegrityError as e:
             print(e)
             raise HTTPException(
-                status_code=400,
-                detail=("The molecule is found, duplicate raised "
-                        "an IntegrityError: UNIQUE constraint failed")
-                        )
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Molecule with this SMILES value already exists"
+                )
+            # raise HTTPException(
+            #     status_code=400,
+            #     detail=("The molecule is found, duplicate raised "
+            #             "an IntegrityError: UNIQUE constraint failed")
+            #             )
         else:
             return MoleculeDAO.last(smiles=smiles)
 
