@@ -7,7 +7,7 @@ from sqlalchemy.orm import (Session, DeclarativeBase, Mapped,
 # from sqlalchemy.exc import IntegrityError, NoResultFound, SQLAlchemyError
 
 url_object = URL.create(
-    "postgresql+psycopg2",
+    "postgresql+psycopg",
     username=getenv("DB_USER", "postgres"),
     password=getenv("DB_PASSWORD", "kx@jj5/g"),  # plain (unescaped) text
     host=getenv("DB_HOST", "localhost"),
