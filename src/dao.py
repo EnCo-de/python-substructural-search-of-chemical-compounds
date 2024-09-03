@@ -4,7 +4,7 @@ from sqlalchemy import create_engine, URL, String
 from sqlalchemy import select, insert  # , text, exc
 from sqlalchemy.orm import (Session, DeclarativeBase, Mapped,
                             mapped_column)  # , relationship
-# from sqlalchemy.exc import IntegrityError, NoResultFound, SQLAlchemyError
+from src.logger import logger
 
 url_object = URL.create(
     "postgresql+psycopg",
@@ -30,7 +30,7 @@ if getenv("DB_HOST") == 'postgres':
 else:
     engine = create_engine("sqlite:///..\\..\\SMILESstorage.db")
     # , echo=True)
-print(url_object, engine)
+logger.debug(url_object, engine)
 
 
 class Base(DeclarativeBase):
@@ -123,7 +123,6 @@ class BaseDAO:
             query = (select(cls.model).filter_by(**data)
                      .order_by(cls.model.id.desc())
                      .limit(limit))
-            print(query)
             if limit > 1:
                 result = session.scalars(query).all()
             elif limit == 1:
