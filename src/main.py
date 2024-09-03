@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, NoResultFound  # , SQLAlchemyError
 from os import getenv
 from src.dao import MoleculeDAO
 from src.logger import logger
-from src.middleware import log_process_time
+from src.middleware import log_middleware
 
 
 def substructure_search(
@@ -35,7 +35,7 @@ class Molecule(BaseModel):
 
 
 app = FastAPI()
-app.add_middleware(BaseHTTPMiddleware, dispatch=log_process_time)
+app.add_middleware(BaseHTTPMiddleware, dispatch=log_middleware)
 # molecules = {}
 logger.info("Started uvicorn web container")
 

@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 datefmt="{time:MMMM D, YYYY > HH:mm:ss!UTC} | {level} | {message}"
-formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(name)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s | %(levelname)-8s | %(name)s - %(message)s')
 
 stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(formatter)
