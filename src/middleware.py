@@ -11,8 +11,7 @@ async def log_process_time(request: Request, call_next):
     log_extra =  {
         'method': request.method,
         'url': request.url.path,
-        'query': request.get(),
-        'body': request.form(),
+        'query': request.query_params.items(),
         'process_time': round(process_time, 2),
     }
     logger.info(log_extra, extra=log_extra)
