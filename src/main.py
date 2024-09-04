@@ -5,6 +5,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, NoResultFound  # , SQLAlchemyError
 from os import getenv
+import redis
+import json
 from src.dao import MoleculeDAO
 from src.logger import logger
 from src.middleware import log_middleware
@@ -37,7 +39,7 @@ class Molecule(BaseModel):
 app = FastAPI()
 app.add_middleware(BaseHTTPMiddleware, dispatch=log_middleware)
 # molecules = {}
-logger.info("Started uvicorn web container")
+logger.info("Started uvicorn web container " + getenv("SERVER_ID", "1"))
 
 
 @app.get("/", summary='Check nginx load balancing', tags=['Load balancer'])
@@ -140,9 +142,28 @@ def delete_molecule(identifier: int):
         return instance
 
 
+# Connect to Redis
+redis_client = redis.Redis(host='redis', port=6379, db=0,
+                           protocol=3, decode_responses=True)
+# url_connection = redis.from_url("redis://localhost:6379?decode_responses="
+#                                 "True&health_check_interval=2&protocol=3")
+
+
+def get_cached_result(key: str):
+    result = redis_client.get(key)
+    if result:
+        return json.loads(result)
+    return None
+
+
+def set_cache(key: str, value: dict, expiration: int = 60):
+    redis_client.setex(key, expiration, json.dumps(value))
+
+
 @app.get("/search/{mol}", tags=['Substructure search'])
 def search_molecules(mol: str = None, max_num: int = 0,
-                     limit: int = 100, offset: int = 0):
+                     limit: int = 100, offset: int = 0,
+                     no_cache: bool = False):
     """
     Substructure search for all added molecules
 
@@ -151,23 +172,39 @@ def search_molecules(mol: str = None, max_num: int = 0,
     substructure `mol` as SMILES strings
     - get the first **max_num** chemical compounds
     that contain substructure `mol`
+    - specifying **no_cache** in any other case variation
+    as True, true, on, yes, 1 will delete the cache
     """
-    molecules = MoleculeDAO.smiles(limit, offset)
+    cache_key = f"search:{mol}"
+    if no_cache:
+        redis_client.delete("SMILES", cache_key)
+    if redis_client.exists("SMILES"):
+        molecules = get_cached_result("SMILES")
+        logger.debug("get_cached SMILES")
+    else:
+        molecules = MoleculeDAO.smiles(limit, offset)
+        set_cache("SMILES", molecules)
+        logger.debug("set_cache SMILES")
     if len(molecules) < 1 or mol is None:
         raise HTTPException(
             status_code=400,
             detail="The molecules for substructure search aren't provided"
             )
-    if max_num == 0:
-        return list(substructure_search(molecules, mol))
-    num = 0
-    chemical_compounds = []
-    for compound in substructure_search(molecules, mol):
-        chemical_compounds.append(compound)
-        num += 1
-        if num == max_num:
-            break
-        return chemical_compounds
+    if redis_client.exists(cache_key):
+        return {"source": "cache", "data": get_cached_result(cache_key)}
+    if max_num <= 0:
+        chemical_compounds = list(substructure_search(molecules, mol))
+    else:
+        num = 0
+        chemical_compounds = []
+        for compound in substructure_search(molecules, mol):
+            chemical_compounds.append(compound)
+            num += 1
+            if num == max_num:
+                break
+    search_result = {"query": mol, "result": chemical_compounds}
+    set_cache(cache_key, search_result)
+    return {"source": "database", "data": search_result}
 
 
 @app.post("/molecules/", status_code=status.HTTP_201_CREATED,
