@@ -183,7 +183,7 @@ def search_molecules(mol: str = None, max_num: int = 0,
         logger.debug("get_cached SMILES")
     else:
         molecules = MoleculeDAO.smiles(limit, offset)
-        set_cache("SMILES", molecules)
+        set_cache("SMILES", molecules, 5*60)
         logger.debug("set_cache SMILES")
     if len(molecules) < 1 or mol is None:
         raise HTTPException(
@@ -204,6 +204,7 @@ def search_molecules(mol: str = None, max_num: int = 0,
                 break
     search_result = {"query": mol, "result": chemical_compounds}
     set_cache(cache_key, search_result)
+    # sets an expiration of 60s
     return {"source": "database", "data": search_result}
 
 
