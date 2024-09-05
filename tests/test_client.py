@@ -1,12 +1,33 @@
+from time import sleep
 from pytest import mark, fixture
 from starlette.testclient import TestClient
-from src.main import app
+from src.main import app, redis_client
 # (substructure_search, get_server, retrieve_all_molecules, 
 #                    add_molecule_smiles, retrieve_molecule_by_id, update_molecule, 
 #                    delete_molecule, search_molecules, upload_molecules)
 
 
 client = TestClient(app)
+
+
+@mark.skip(reason="no way of currently testing cache")
+def test_caching_search_molecules():
+    def search_request(query: str, source: str):
+        response = client.get(f"/search/{query}")
+        assert response.status_code == 200
+        data = response.json()
+        assert "source" in data
+        assert data["source"] == source
+        return data["data"]
+
+    query = "c1ccccc1"
+    data = search_request(query, "database")
+    assert redis_client.exists(f"search:{query}")
+    sleep(60-0.1)
+    assert data == search_request(query, "cache")
+    sleep(0.2)
+    assert not redis_client.exists(f"search:{query}")
+    search_request(query, "database")
 
 
 @mark.skip(reason="no way of currently testing this")
