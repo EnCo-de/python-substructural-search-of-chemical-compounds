@@ -1,34 +1,36 @@
-from typing import List, Generator  # , Union, Optional
+# from typing import List, Generator  # , Union, Optional
 from rdkit.Chem import MolFromSmiles  # , Draw
 from fastapi import FastAPI, status, HTTPException, UploadFile
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, NoResultFound  # , SQLAlchemyError
 from os import getenv
-import redis
-import json
 from src.dao import MoleculeDAO
 from src.logger import logger
 from src.middleware import log_middleware
+from src.caching import redis_client, get_cached_result, set_cache
+from src.tasks import substructure_search_task, substructure_search
+from src.celery_worker import celery
+from celery.result import AsyncResult
 
 
-def substructure_search(
-        mols: List[str],
-        mol: str
-        ) -> Generator[str, None, None]:
-    """
-    Find and return a list of all molecules as SMILES strings from *`mols`*
-    that contain substructure *`mol`* as SMILES string.
-    """
-    if not (isinstance(mols, (list, tuple)) and
-            all(map(lambda x: isinstance(x, str), mols))):
-        raise TypeError('an input value does not match the expected data type')
-    mol = MolFromSmiles(mol)
-    if mol is not None:
-        for smiles in mols:
-            if ((compound := MolFromSmiles(smiles)) and
-                    compound.HasSubstructMatch(mol)):
-                yield smiles
+# def substructure_search(
+#         mols: List[str],
+#         mol: str
+#         ) -> Generator[str, None, None]:
+#     """
+#     Find and return a list of all molecules as SMILES strings from *`mols`*
+#     that contain substructure *`mol`* as SMILES string.
+#     """
+#     if not (isinstance(mols, (list, tuple)) and
+#             all(map(lambda x: isinstance(x, str), mols))):
+#         raise TypeError('an input value does not match the expected data type')
+#     mol = MolFromSmiles(mol)
+#     if mol is not None:
+#         for smiles in mols:
+#             if ((compound := MolFromSmiles(smiles)) and
+#                     compound.HasSubstructMatch(mol)):
+#                 yield smiles
 
 
 class Molecule(BaseModel):
@@ -50,6 +52,18 @@ def get_server():
     web containers.
     """
     return {"server_id": getenv("SERVER_ID", "1")}
+
+
+@app.get("/tasks/{task_id}", tags=['Substructure search'])
+async def get_task_result(task_id: str):
+    task_result = AsyncResult(task_id, app=celery)
+    task = {"task_id": task_id, "status": task_result.state}
+    if task_result.state in ('STARTED', 'PENDING'):
+        task["status"] = "Task is still processing"
+    elif task_result.successful() or task_result.state == 'SUCCESS':
+        task["status"] = "Task completed"
+        task["result"] = task_result.result
+    return task
 
 
 @app.get("/smiles/", tags=['Checking stored molecule SMILES'])
@@ -142,24 +156,6 @@ def delete_molecule(identifier: int):
         return instance
 
 
-# Connect to Redis
-redis_client = redis.Redis(host='redis', port=6379, db=0,
-                           protocol=3, decode_responses=True)
-# url_connection = redis.from_url("redis://localhost:6379?decode_responses="
-#                                 "True&health_check_interval=2&protocol=3")
-
-
-def get_cached_result(key: str):
-    result = redis_client.get(key)
-    if result:
-        return json.loads(result)
-    return None
-
-
-def set_cache(key: str, value: dict, expiration: int = 60):
-    redis_client.setex(key, expiration, json.dumps(value))
-
-
 @app.get("/search/{mol}", tags=['Substructure search'])
 def search_molecules(mol: str = None, max_num: int = 0,
                      limit: int = 100, offset: int = 0,
@@ -206,6 +202,37 @@ def search_molecules(mol: str = None, max_num: int = 0,
     set_cache(cache_key, search_result)
     # sets an expiration of 60s
     return {"source": "database", "data": search_result}
+
+
+@app.post("/search/{smiles}", tags=['Substructure search'])
+async def create_task(smiles: str):
+    """
+    ### Modify the substructure search functionality to use Celery.
+    Send a POST request to add a search task
+
+    Check for cached search result in **Redis** before searching.
+    - If found, return it immediately.
+    - If the result is not cached, 
+        1. Send a request to **Celery** to start the
+        `substructure search task`,
+        2. You will receive a response with the task_id.
+        To check the status of the task `/tasks/{task_id}`.
+        2. It performs the search, caches the result,
+        3. and then you can send request to get results by task url.
+    """
+    if MolFromSmiles(smiles) is None:
+        raise HTTPException(
+            status_code=400,
+            detail=("SMILES Parse Error: syntax error "
+                    f"for input '{smiles}'.")
+                    )
+    cache_key = f"search:{smiles}"
+    result = get_cached_result(cache_key)
+    if result is None:
+        task = substructure_search_task.delay(smiles)
+        return {"task_id": task.id, "status": task.status}
+    return {"source": "cache search", "data": result}
+
 
 
 @app.post("/molecules/", status_code=status.HTTP_201_CREATED,
