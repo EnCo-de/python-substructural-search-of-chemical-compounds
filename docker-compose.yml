@@ -13,6 +13,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - celery_worker
 
   web2:
     build: ./src
@@ -27,6 +28,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - celery_worker
 
   nginx:
     image: nginx:latest
@@ -79,6 +81,16 @@ services:
     image: "redis:alpine"
     ports:
       - "6379:6379"
+
+  celery_worker:
+    # build: .
+    # command: celery -A src.celery_worker worker --loglevel=info
+    build: ./src
+    entrypoint: celery -A src.celery_worker worker --loglevel=info
+    depends_on:
+      - redis
+    volumes:
+      - .:/src
 
 volumes:
   pgdata:
