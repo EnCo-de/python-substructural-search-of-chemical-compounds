@@ -28,15 +28,15 @@ def substructure_search(
 @celery.task
 def substructure_search_task(smiles):
     # Get all stored chemical compounds
-    source = "database"
     molecules = get_cached_result("SMILES")
-    if molecules is None:
+    if molecules:
+        source = "cache"
+        logger.debug(f"get_cached SMILES {len(molecules)}")
+    else:
+        source = "database"
         molecules = MoleculeDAO.smiles()
         set_cache("SMILES", molecules, 5*60)
-        logger.debug("set_cache SMILES")
-    else:
-        source = "cache"
-        logger.debug("get_cached SMILES")
+        logger.debug(f"set_cache SMILES {len(molecules)}")
     cache_key = f"search:{smiles}"
     chemical_compounds = list(substructure_search(molecules, smiles))
     search_result = {"query": smiles, "result": chemical_compounds}
