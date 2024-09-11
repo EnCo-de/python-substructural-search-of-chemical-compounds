@@ -13,7 +13,7 @@ services:
     depends_on:
       - postgres
       - redis
-      - celery_worker
+      # - celery_worker
 
   web2:
     build: ./src
@@ -28,7 +28,7 @@ services:
     depends_on:
       - postgres
       - redis
-      - celery_worker
+      # - celery_worker
 
   nginx:
     image: nginx:latest
