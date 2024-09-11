@@ -1,6 +1,6 @@
 # from typing import List, Generator  # , Union, Optional
 from rdkit.Chem import MolFromSmiles  # , Draw
-from fastapi import FastAPI, status, HTTPException, UploadFile
+from fastapi import FastAPI, Request, status, HTTPException, UploadFile
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, NoResultFound  # , SQLAlchemyError
@@ -205,7 +205,7 @@ def search_molecules(mol: str = None, max_num: int = 0,
 
 
 @app.post("/search/{smiles}", tags=['Substructure search'])
-async def create_task(smiles: str):
+async def create_task(request: Request, smiles: str):
     """
     ### Modify the substructure search functionality to use Celery.
     Send a POST request to add a search task
@@ -230,7 +230,8 @@ async def create_task(smiles: str):
     result = get_cached_result(cache_key)
     if result is None:
         task = substructure_search_task.delay(smiles)
-        return {"task_id": task.id, "status": task.status}
+        link = request.url_for("get_task_result", task_id=task.id)
+        return {"task_id": task.id, "status": task.status, "link": link}
     return {"source": "cache search", "data": result}
 
 
