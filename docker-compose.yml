@@ -27,7 +27,6 @@ services:
     depends_on:
       - postgres
       - redis
-      # - celery_worker
 
   nginx:
     image: nginx:latest
