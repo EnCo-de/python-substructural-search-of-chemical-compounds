@@ -8,10 +8,10 @@ from src.logger import logger
 
 url_object = URL.create(
     "postgresql+psycopg",
-    username=getenv("DB_USER", "postgres"),
-    password=getenv("DB_PASSWORD", "kx@jj5/g"),  # plain (unescaped) text
-    host=getenv("DB_HOST", "localhost"),
-    database=getenv("DB_NAME", "compounds"),
+    username=getenv("DB_USER"),
+    password=getenv("DB_PASSWORD"),  # plain (unescaped) text
+    host=getenv("DB_HOST"),
+    database=getenv("DB_NAME"),
 )
 
 # url_object = URL.create(
@@ -161,7 +161,7 @@ class MoleculeDAO(BaseDAO):
         And the same way, you can skip the
         first results with *`offset`*.
         """
-        with Session(engine) as session, session.begin():
+        with Session(engine) as session:  # , session.begin():
             statement = (select(cls.model.smiles)
                          .offset(offset)
                          .limit(limit))
