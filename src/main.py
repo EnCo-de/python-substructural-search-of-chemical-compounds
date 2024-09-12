@@ -1,6 +1,6 @@
 # from typing import List, Generator  # , Union, Optional
 from rdkit.Chem import MolFromSmiles  # , Draw
-from fastapi import FastAPI, Request, status, HTTPException, UploadFile
+from fastapi import FastAPI, status, HTTPException, UploadFile
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, NoResultFound  # , SQLAlchemyError
@@ -14,25 +14,6 @@ from src.celery_worker import celery
 from celery.result import AsyncResult
 
 
-# def substructure_search(
-#         mols: List[str],
-#         mol: str
-#         ) -> Generator[str, None, None]:
-#     """
-#     Find and return a list of all molecules as SMILES strings from *`mols`*
-#     that contain substructure *`mol`* as SMILES string.
-#     """
-#     if not (isinstance(mols, (list, tuple)) and
-#             all(map(lambda x: isinstance(x, str), mols))):
-#         raise TypeError('an input value does not match the expected data type')
-#     mol = MolFromSmiles(mol)
-#     if mol is not None:
-#         for smiles in mols:
-#             if ((compound := MolFromSmiles(smiles)) and
-#                     compound.HasSubstructMatch(mol)):
-#                 yield smiles
-
-
 class Molecule(BaseModel):
     identifier: int
     smiles: str
@@ -40,7 +21,6 @@ class Molecule(BaseModel):
 
 app = FastAPI()
 app.add_middleware(BaseHTTPMiddleware, dispatch=log_middleware)
-# molecules = {}
 logger.info("Started uvicorn web container " + getenv("SERVER_ID", "1"))
 
 
@@ -58,7 +38,7 @@ def get_server():
 async def get_task_result(task_id: str):
     task_result = AsyncResult(task_id, app=celery)
     task = {"task_id": task_id, "status": task_result.state}
-    if task_result.state in ('STARTED', 'PENDING'):
+    if task_result.state == 'STARTED':
         task["status"] = "Task is still processing"
     elif task_result.successful() or task_result.state == 'SUCCESS':
         task["status"] = "Task completed"
