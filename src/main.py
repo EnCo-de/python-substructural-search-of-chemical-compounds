@@ -205,7 +205,7 @@ def search_molecules(mol: str = None, max_num: int = 0,
 
 
 @app.post("/search/{smiles}", tags=['Substructure search'])
-async def create_task(request: Request, smiles: str):
+async def create_task(smiles: str):
     """
     ### Modify the substructure search functionality to use Celery.
     Send a POST request to add a search task
@@ -230,10 +230,10 @@ async def create_task(request: Request, smiles: str):
     result = get_cached_result(cache_key)
     if result is None:
         task = substructure_search_task.delay(smiles)
-        link = request.url_for("get_task_result", task_id=task.id)
+        link = getenv("DOMAIN", "http://localhost")
+        link += app.url_path_for("get_task_result", task_id=task.id)
         return {"task_id": task.id, "status": task.status, "link": link}
     return {"source": "cache search", "data": result}
-
 
 
 @app.post("/molecules/", status_code=status.HTTP_201_CREATED,
