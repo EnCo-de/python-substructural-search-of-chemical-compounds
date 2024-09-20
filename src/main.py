@@ -192,7 +192,7 @@ async def create_task(smiles: str):
 
     Check for cached search result in **Redis** before searching.
     - If found, return it immediately.
-    - If the result is not cached, 
+    - If the result is not cached,
         1. Send a request to **Celery** to start the
         `substructure search task`,
         2. You will receive a response with the task_id.
