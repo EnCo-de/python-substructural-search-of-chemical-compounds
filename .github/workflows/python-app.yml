@@ -27,7 +27,7 @@ jobs:
       run: |
         python extra/secrets.py
         echo "bin/bash"
-        cut -c 1-7 <<< ${{ secrets.SECRET_ACCESS_KEY }}
+        cut -c 2-4 <<< ${{ secrets.ACCESS_KEY }}
         awk '{print substr($0, 3, 3)}' <<< ${{ secrets.SECRET_ACCESS_KEY }}
         awk '{print substr($0, 3, 3)}' <<< "$SECRET_ACCESS_KEY"
         
