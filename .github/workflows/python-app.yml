@@ -1,0 +1,28 @@
+name: Python application
+
+on:
+  push:
+    branches: [ "boto3-lambda" ]
+  pull_request:
+    branches: [ "boto3-lambda" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.12"
+    - name: Install dependencies
+      env:
+        SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS_KEY }}
+        ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+      run: |
+        python extra/secrets.py
