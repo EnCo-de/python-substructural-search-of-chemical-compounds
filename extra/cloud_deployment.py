@@ -2,7 +2,16 @@ import os
 import boto3  # import boto3.session
 from botocore.exceptions import ClientError
 
-def main():
+def main(instance_id: str):
+    """
+    Replaces the code associated with a running instance. The
+    instance is rebooted to ensure that it uses the new commit.
+    When the instance is ready, Docker compose is used
+    to restart the Python web server.
+
+    :param instance_id: The ID of the instance to restart.
+    """
+
     # Initialize a session using AWS credentials
     session = boto3.Session(
         aws_access_key_id=os.getenv('ACCESS_KEY'),
@@ -11,11 +20,13 @@ def main():
     )
     ec2_client = session.client('ec2', region_name='us-east-1')
 
-    response = ec2_client.reboot_instances(
-        InstanceIds=[os.getenv('NEW_EC2_INSTANCE')]
-    )
-    print('... World!')
-    return response
+    ec2_client.reboot_instances(InstanceIds=[instance_id])
+    print("Rebooting instance %s." % instance_id)
+    waiter = self.ec2_client.get_waiter("instance_running")
+    print("Waiting for instance %s to be running." % instance_id)
+    waiter.wait(InstanceIds=[instance_id])
+    print("Instance %s is now running." % instance_id)
 
 if __name__ == '__main__':
     print('CI/CD Continuous Integration, Continuous Delivery')
+    main(os.getenv('NEW_EC2_INSTANCE'))
