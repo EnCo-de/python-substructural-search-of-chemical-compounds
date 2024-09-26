@@ -22,7 +22,7 @@ def main(instance_id: str):
 
     ec2_client.reboot_instances(InstanceIds=[instance_id])
     print("Rebooting instance %s." % instance_id)
-    waiter = self.ec2_client.get_waiter("instance_running")
+    waiter = ec2_client.get_waiter("instance_running")
     print("Waiting for instance %s to be running." % instance_id)
     waiter.wait(InstanceIds=[instance_id])
     print("Instance %s is now running." % instance_id)
