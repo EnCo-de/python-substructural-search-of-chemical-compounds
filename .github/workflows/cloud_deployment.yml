@@ -38,7 +38,7 @@ jobs:
     - name: Deploy to cloud
       env:
         ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
-        NEW_EC2_INSTANCE: ${{ secrets.NEW_EC2_INSTANCE }}"
+        NEW_EC2_INSTANCE: ${{ secrets.NEW_EC2_INSTANCE }}
         SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS_KEY }}
       run: |
         python extra/cloud_deployment.py
