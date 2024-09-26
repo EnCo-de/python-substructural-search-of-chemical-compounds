@@ -24,10 +24,14 @@ jobs:
       env:
         SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS_KEY }}
         ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+        NEW_EC2_INSTANCE: ${{ secrets.NEW_EC2_INSTANCE }}"
+        
       run: |
         python extra/secrets.py
+        echo "secret ${{ secrets.NEW_EC2_INSTANCE }}"
         echo "bin/bash"
         cut -c 2-4 <<< ${{ secrets.ACCESS_KEY }}
+        echo "env $NEW_EC2_INSTANCE }}"
         awk '{print substr($0, 3, 3)}' <<< ${{ secrets.SECRET_ACCESS_KEY }}
         awk '{print substr($0, 3, 3)}' <<< "$SECRET_ACCESS_KEY"
         
