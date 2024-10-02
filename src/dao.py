@@ -6,31 +6,23 @@ from sqlalchemy.orm import (Session, DeclarativeBase, Mapped,
                             mapped_column)  # , relationship
 from src.logger import logger
 
-url_object = URL.create(
-    "postgresql+psycopg",
-    username=getenv("DB_USER"),
-    password=getenv("DB_PASSWORD"),  # plain (unescaped) text
-    host=getenv("DB_HOST"),
-    database=getenv("DB_NAME"),
-)
-
-# url_object = URL.create(
-#     "postgresql+psycopg2",
-#     username="postgres",
-#     password="kx@jj5/g",  # plain (unescaped) text
-#     host="localhost",
-#     database="molecules",
-# )
-
 # engine = create_engine("postgresql+psycopg2://"
 #                        "scott:tiger@localhost:5432/mydatabase")
 # dialect+driver://username:password@host:port/database
 if getenv("DB_HOST") == 'postgres':
+    url_object = URL.create(
+        "postgresql+psycopg",
+        username=getenv("DB_USER"),
+        password=getenv("DB_PASSWORD"),  # plain (unescaped) text
+        host=getenv("DB_HOST"),
+        database=getenv("DB_NAME"),
+    )
     engine = create_engine(url_object)
+    logger.debug(f'Connection URL = {url_object}, engine = {engine}')
 else:
     engine = create_engine("sqlite:///..\\..\\SMILESstorage.db")
     # , echo=True)
-logger.debug(url_object, engine)
+    logger.debug(f'Connection engine = {engine}')
 
 
 class Base(DeclarativeBase):
