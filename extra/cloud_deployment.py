@@ -23,10 +23,9 @@ def main(instance_id: str):
     ec2_client.reboot_instances(InstanceIds=[instance_id])
     print("Rebooting instance %s." % instance_id)
     waiter = ec2_client.get_waiter("instance_running")
-    print("Waiting for instance %s to be running." % instance_id)
+    print("Waiting for instance to be running.")
     waiter.wait(InstanceIds=[instance_id])
-    print("Instance %s is now running." % instance_id)
+    print("Instance is now running.")
 
 if __name__ == '__main__':
-    print('CI/CD Continuous Integration, Continuous Delivery')
     main(os.getenv('NEW_EC2_INSTANCE'))
