@@ -6,8 +6,8 @@ on:
       - closed
     branches:
       - deploy
-  push:
-    branches: [ "boto3-lambda" ]
+  # push:
+  #   branches: [ "boto3-lambda" ]
 
 permissions:
   contents: read
