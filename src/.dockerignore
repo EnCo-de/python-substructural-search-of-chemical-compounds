@@ -1,5 +1,6 @@
 hw/
 images/
+extra/
 .git
 .gitignore
 __pycache__
