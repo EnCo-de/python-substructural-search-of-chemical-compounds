@@ -1,5 +1,5 @@
 import pandas as pd
-from rdkit.Chem import AllChem, Descriptors, rdMolDescriptors
+from rdkit.Chem import AllChem, Descriptors
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.models import Variable
@@ -10,16 +10,15 @@ S3_CONN_ID = 'aws_s3_conn'
 def extract_data(ti):
     """ Extract SMILES and related columns from a table
     for the current day """
-    skip = ti.xcom_pull(
-        task_ids='load_data',
-        key='last_saved'
-    )
-    output_file = 'smiles.csv'
+    last = ti.xcom_pull(task_ids='load_data') or 0
+    output_file_path = 'smiles.csv'
     postgres_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
     engine = postgres_hook.get_sqlalchemy_engine()
-    df = pd.read_sql_table('molecules', engine)
-    df.to_csv(output_file, index=False)
-    return output_file
+    query = ('SELECT * FROM molecules '
+             'WHERE id > %(last)d;')
+    df = pd.read_sql_query(query, engine, params={'last': last})
+    df.to_csv(output_file_path, index=False)
+    return output_file_path
 
 
 def transform_data(ti):
@@ -28,7 +27,9 @@ def transform_data(ti):
     # Grab, process data
     file_path = ti.xcom_pull(task_ids='extract_data')
     df = pd.read_csv(file_path)
-    df.rename(columns=str.upper, inplace=True)
+    # df.rename(columns=str.upper, inplace=True)
+    smiles = df.columns[df.columns.str.upper() == 'SMILES'][0]
+    df.rename(columns={smiles: 'SMILES'}, inplace=True)
     df.drop_duplicates(subset='SMILES', inplace=True)
     print("The dataframe is:")
     print(df)
@@ -49,7 +50,7 @@ def compute_mol_props(chunk_df):
     mol_property_funcs = {
         'Molecular weight': Descriptors.MolWt,
         'logP': Descriptors.MolLogP,
-        'TPSA': rdMolDescriptors.CalcTPSA,
+        'TPSA': Descriptors.TPSA,
         'H Donors': Descriptors.NumHDonors,
         'H Acceptors': Descriptors.NumHAcceptors
     }
@@ -82,7 +83,7 @@ def load_data(ti, ds):
     )
     print(f'Converting data from {file_path} to {xlsx_file_name}.')
     df = pd.read_csv(file_path)
-    print(df)
+    print('\n', df)
     df.to_excel(xlsx_file_name, index=False, header=True)
     # Instantiate cloud file storage connection, upload to S3 using predefined method
     bucket_name = Variable.get("bucket_name")
@@ -94,3 +95,6 @@ def load_data(ti, ds):
         replace=True
         )
     print('Check upload file')
+    return int(df['id'].max())
+# df['id'].iloc[-1]
+# df.iloc[-1, -1]
