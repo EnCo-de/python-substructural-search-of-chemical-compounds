@@ -3,9 +3,24 @@ from rdkit.Chem import AllChem, Descriptors
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.models import Variable
+from minio import Minio
+from minio.error import S3Error
 
 POSTGRES_CONN_ID = 'postgres_local'
 S3_CONN_ID = 'aws_s3_conn'
+# Create a client with the MinIO server,
+# its access key and secret key.
+client = Minio("docker.host.internal:9000",
+    access_key="minio_access_key",
+    secret_key="minio_secret_key",
+)
+bucket = "bronze"
+# Make the MinIO bucket if it isn't found
+# to upload the file.
+if not client.bucket_exists(bucket):
+    client.make_bucket(bucket)
+    print("Created bucket", bucket)
+
 
 def extract_data(ti):
     """ Extract SMILES and related columns from a table
@@ -18,6 +33,9 @@ def extract_data(ti):
              'WHERE id > %(last)d;')
     df = pd.read_sql_query(query, engine, params={'last': last})
     df.to_csv(output_file_path, index=False)
+    # file upload to MinIO
+    client.fput_object(bucket, output_file_path, output_file_path,
+                       content_type="application/csv",)
     return output_file_path
 
 
@@ -26,13 +44,12 @@ def transform_data(ti):
     TPSA, H Donors, H Acceptors and Lipinski pass properties """
     # Grab, process data
     file_path = ti.xcom_pull(task_ids='extract_data')
+    client.fget_object(bucket, file_path, file_path)
     df = pd.read_csv(file_path)
-    # df.rename(columns=str.upper, inplace=True)
     smiles = df.columns[df.columns.str.upper() == 'SMILES'][0]
     df.rename(columns={smiles: 'SMILES'}, inplace=True)
     df.drop_duplicates(subset='SMILES', inplace=True)
-    print("The dataframe is:")
-    print(df)
+    print("The dataframe is:\n", df)
     processed_mols_df = compute_mol_props(df)
     print("\nTransform data, which would compute_mol_props(df)")
     print(processed_mols_df)
@@ -43,6 +60,8 @@ def transform_data(ti):
             key='output_file_path',
             value=output_file_path 
     )
+    client.fput_object(bucket, output_file_path, output_file_path,
+                       content_type="application/csv",)
 
 
 def compute_mol_props(chunk_df):
@@ -81,6 +100,7 @@ def load_data(ti, ds):
         task_ids='transform_data',
         key='output_file_path'
     )
+    client.fget_object(bucket, file_path, file_path)
     print(f'Converting data from {file_path} to {xlsx_file_name}.')
     df = pd.read_csv(file_path)
     print('\n', df)
