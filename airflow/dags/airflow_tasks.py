@@ -22,10 +22,17 @@ if not client.bucket_exists(bucket):
     print("Created bucket", bucket)
 
 
-def extract_data(ti):
+def extract_data(ti, run_id):
     """ Extract SMILES and related columns from a table
     for the current day """
-    last = ti.xcom_pull(task_ids='load_data') or 0
+    # XComs from previous execution_dates are returned as well.
+    last = ti.xcom_pull(
+        task_ids='load_data',
+        # dag_id=ti.dag_id, If None (default), the DAG of the calling task is used.
+        # key='return_value', The default key is 'return_value', also available as constant XCOM_RETURN_KEY
+        include_prior_dates=True,
+        ) or 0
+    print("Last uploaded compound's SMILES index is", last)
     output_file_path = 'smiles.csv'
     postgres_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
     engine = postgres_hook.get_sqlalchemy_engine()
