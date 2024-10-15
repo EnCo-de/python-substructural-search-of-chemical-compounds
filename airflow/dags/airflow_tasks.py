@@ -4,15 +4,15 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.models import Variable
 from minio import Minio
-from minio.error import S3Error
 
 POSTGRES_CONN_ID = 'postgres_local'
 S3_CONN_ID = 'aws_s3_conn'
 # Create a client with the MinIO server,
 # its access key and secret key.
-client = Minio("docker.host.internal:9000",
+client = Minio("storage:9000",
     access_key="minio_access_key",
     secret_key="minio_secret_key",
+    secure = False
 )
 bucket = "bronze"
 # Make the MinIO bucket if it isn't found
@@ -30,7 +30,7 @@ def extract_data(ti):
     postgres_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
     engine = postgres_hook.get_sqlalchemy_engine()
     query = ('SELECT * FROM molecules '
-             'WHERE id > %(last)d;')
+             'WHERE id > %(last)s;')
     df = pd.read_sql_query(query, engine, params={'last': last})
     df.to_csv(output_file_path, index=False)
     # file upload to MinIO
