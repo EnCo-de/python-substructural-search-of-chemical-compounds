@@ -33,17 +33,20 @@ def extract_data(ti, run_id):
         include_prior_dates=True,
         ) or 0
     print("Last uploaded compound's SMILES index is", last)
-    output_file_path = 'smiles.csv'
     postgres_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
     engine = postgres_hook.get_sqlalchemy_engine()
     query = ('SELECT * FROM molecules '
              'WHERE id > %(last)s;')
     df = pd.read_sql_query(query, engine, params={'last': last})
-    df.to_csv(output_file_path, index=False)
-    # file upload to MinIO
-    client.fput_object(bucket, output_file_path, output_file_path,
-                       content_type="application/csv",)
-    return output_file_path
+    if df.size > 0:
+        output_file_path = 'smiles.csv'
+        df.to_csv(output_file_path, index=False)
+        # file upload to MinIO
+        client.fput_object(bucket, output_file_path, output_file_path,
+                           content_type="application/csv",)
+        return output_file_path
+    else:
+        return None
 
 
 def transform_data(ti):
