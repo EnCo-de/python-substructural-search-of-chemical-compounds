@@ -7,16 +7,15 @@ from minio import Minio
 
 POSTGRES_CONN_ID = 'postgres_local'
 S3_CONN_ID = 'aws_s3_conn'
-# Create a client with the MinIO server,
-# its access key and secret key.
+
+# Create a client with the MinIO server, its access key and secret key.
 client = Minio("storage:9000",
     access_key="minio_access_key",
     secret_key="minio_secret_key",
     secure = False
 )
 bucket = "bronze"
-# Make the MinIO bucket if it isn't found
-# to upload the file.
+# Make the MinIO bucket if it isn't found to upload the file.
 if not client.bucket_exists(bucket):
     client.make_bucket(bucket)
     print("Created bucket", bucket)
@@ -72,6 +71,7 @@ def transform_data(ti):
     )
     client.fput_object(bucket, output_file_path, output_file_path,
                        content_type="application/csv",)
+    return df.shape
 
 
 def compute_mol_props(chunk_df):
