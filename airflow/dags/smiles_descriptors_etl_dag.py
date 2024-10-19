@@ -11,8 +11,8 @@ DAG Schedule is to run on a daily basis. """
 
 @task.branch(task_id="branch_task")
 def branch_func(ti=None):
-    xcom_value = ti.xcom_pull(task_ids="extract_data")
-    if xcom_value:
+    extracted_data = ti.xcom_pull(task_ids="extract_data")
+    if extracted_data:
         return "transform_data"
     else:
         return "finish"
@@ -43,7 +43,8 @@ with DAG(
         python_callable=airflow_tasks.load_data
     )
     finish_op = EmptyOperator(
-        task_id='finish'
+        task_id='finish',
+        trigger_rule="none_failed_min_one_success"
     )
     branch_op = branch_func()
 
