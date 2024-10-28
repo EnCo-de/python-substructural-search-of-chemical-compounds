@@ -32,14 +32,12 @@ class Base(DeclarativeBase):
 # table structure
 class Molecules(Base):
     __tablename__ = "molecules"
+
     id: Mapped[int] = mapped_column(primary_key=True)
     smiles: Mapped[str] = mapped_column(String(2778), nullable=False)
 
     def __repr__(self) -> str:
         return f"<{self.id!r}. {self.smiles!r}>"
-
-
-Molecules.metadata.create_all(engine, checkfirst=True)
 
 '''
 Just as a matter of curiosity, the longest SMILES string created so far

@@ -1,5 +1,5 @@
 from pytest import mark, fixture, raises
-from src.main import substructure_search
+from src.tasks import substructure_search
 
 
 @fixture
@@ -20,7 +20,8 @@ def test_substructure_search(molecules_storage):
 
 @mark.parametrize("mols, mol, expected", [
     (["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"],'H-H',[]),
-    (["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"],'C(=O)O',["CC(=O)Oc1ccccc1C(=O)O"]),
+    (["c1ccccc1", "CC(=O)Oc1ccccc1C(=O)O"],'C(=O)O',
+     ["CC(=O)Oc1ccccc1C(=O)O"]),
     (["CCO", "c1ccccc1", "CC(=O)O"], '',  []),
     ([], "CCO",  []),
     (["CCO", "c1ccccc1", "CC(=O)O", "C"], 'O',  ["CCO", "CC(=O)O"]),
@@ -31,7 +32,8 @@ def test_parametrize_search(mols, mol, expected):
 
 @mark.xfail(reason="SMILES Parse Error")
 def test_substructure_str():
-    assert list(substructure_search(["CC(=O)Oc1ccccc1C(=O)O"], "C2(OH)4")) == ["C"]
+    assert list(substructure_search(["CC(=O)Oc1ccccc1C(=O)O"],
+                                    "C2(OH)4")) == ["C"]
 
 
 @mark.skip(reason="no way of currently testing this")
@@ -39,8 +41,11 @@ def test_skip():
     print("Skip this test function")
 
 
-text = "TypeError: No converter to C++ value from NoneType object"
-@mark.xfail(raises=TypeError, reason=text)
+@mark.xfail(
+        raises=TypeError,
+        reason=("TypeError: No converter to C++"
+                "value from NoneType object")
+        )
 def test_substructure_none(molecules_storage):
     assert list(substructure_search(molecules_storage, None)) == ["C"]
 
