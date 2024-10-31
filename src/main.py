@@ -210,8 +210,7 @@ async def create_task(smiles: str):
     result = get_cached_result(cache_key)
     if result is None:
         task = substructure_search_task.delay(smiles)
-        link = getenv("DOMAIN", "http://localhost")
-        link += app.url_path_for("get_task_result", task_id=task.id)
+        link = app.url_path_for("get_task_result", task_id=task.id)
         return {"task_id": task.id, "status": task.status, "link": link}
     return {"source": "cache search", "data": result}
 
