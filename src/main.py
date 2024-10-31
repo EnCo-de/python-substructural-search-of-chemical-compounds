@@ -23,6 +23,7 @@ app = FastAPI()
 app.add_middleware(BaseHTTPMiddleware, dispatch=log_middleware)
 logger.info("Started uvicorn web container " + getenv("SERVER_ID", "1"))
 
+
 @app.on_event("startup")
 async def startup_event():
     Molecules.metadata.create_all(engine, checkfirst=True)

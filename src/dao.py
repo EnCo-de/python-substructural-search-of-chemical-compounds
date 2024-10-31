@@ -39,6 +39,7 @@ class Molecules(Base):
     def __repr__(self) -> str:
         return f"<{self.id!r}. {self.smiles!r}>"
 
+
 '''
 Just as a matter of curiosity, the longest SMILES string created so far
 is a complex yet discrete cluster with 52 metallic atoms and a SMILES

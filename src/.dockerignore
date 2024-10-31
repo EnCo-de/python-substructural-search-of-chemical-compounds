@@ -1,7 +1,9 @@
+airflow/
+extra/
 hw/
 images/
-extra/
 .git
+.github
 .gitignore
 __pycache__
 **/__pycache__

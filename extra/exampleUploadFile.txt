@@ -1,3 +1,7 @@
+Simplified Molecular Input Line Entry System
+SMILES (simplified molecular-input line-entry system) strings are ASCII sequences that describe the structure of a compound.
+SMILES is a line notation system used for describing the structure of chemical species using short ASCII strings.
+
 CCO
 c1ccccc1
 CC(=O)O
