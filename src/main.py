@@ -24,7 +24,7 @@ app.add_middleware(BaseHTTPMiddleware, dispatch=log_middleware)
 logger.info("Started uvicorn web container " + getenv("SERVER_ID", "1"))
 
 
-@app.get("/", summary='Check nginx load balancing', tags=['Load balancer'])
+@app.get("/", summary='Check nginx load balancing', tags=['Load balancer check'])
 def get_server():
     """
     You should be able to access the application on your browser.
