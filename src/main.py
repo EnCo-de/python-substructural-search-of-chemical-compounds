@@ -5,7 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, NoResultFound  # , SQLAlchemyError
 from os import getenv
-from src.dao import MoleculeDAO
+from src.dao import MoleculeDAO, Molecules, engine
 from src.logger import logger
 from src.middleware import log_middleware
 from src.caching import redis_client, get_cached_result, set_cache
@@ -22,6 +22,11 @@ class Molecule(BaseModel):
 app = FastAPI()
 app.add_middleware(BaseHTTPMiddleware, dispatch=log_middleware)
 logger.info("Started uvicorn web container " + getenv("SERVER_ID", "1"))
+
+
+@app.on_event("startup")
+async def startup_event():
+    Molecules.metadata.create_all(engine, checkfirst=True)
 
 
 @app.get("/", summary='Check nginx load balancing', tags=['Load balancer'])
